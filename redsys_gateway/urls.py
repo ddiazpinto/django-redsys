@@ -11,9 +11,9 @@ urlpatterns = [
         response_view,
         name='response'),
     url(r'^accepted/$',
-        TemplateView.as_view('redsys_gateway/transaction-accepted.html'),
+        TemplateView.as_view(template_name='redsys_gateway/transaction-accepted.html'),
         name='transaction-accepted'),
     url(r'^rejected/$',
-        TemplateView.as_view('redsys_gateway/transaction-rejected.html'),
+        TemplateView.as_view(template_name='redsys_gateway/transaction-rejected.html'),
         name='transaction-rejected'),
 ]
