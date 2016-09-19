@@ -36,9 +36,9 @@ class RedirectView(FormView):
         request.titular = settings.REDSYS_TITULAR
         request.terminal = settings.REDSYS_TERMINAL
         request.product_description = settings.REDSYS_PRODUCT_DESCRIPTION
-        request.merchant_url = reverse("redsys_gateway:response")
-        request.url_ok = reverse("redsys_gateway:transaction-accepted")
-        request.url_ko = reverse("redsys_gateway:transaction-rejected")
+        request.merchant_url = reverse("redsys_gateway-response")
+        request.url_ok = reverse("redsys_gateway-transaction-accepted")
+        request.url_ko = reverse("redsys_gateway-transaction-rejected")
         request.currency = settings.REDSYS_CURRENCY
         request.transaction_type = settings.REDSYS_TRANSACTIONTYPE
         request.order = self.get_order(form)

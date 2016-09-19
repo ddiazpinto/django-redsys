@@ -6,15 +6,14 @@ from django.views.generic import TemplateView
 from .views import (response_view)
 
 
-app_name = 'redsys_gateway'
 urlpatterns = [
     url(r'^response/$',
         response_view,
-        name='response'),
+        name='redsys_gateway-response'),
     url(r'^accepted/$',
         TemplateView.as_view(template_name='redsys_gateway/transaction-accepted.html'),
-        name='transaction-accepted'),
+        name='redsys_gateway-transaction-accepted'),
     url(r'^rejected/$',
         TemplateView.as_view(template_name='redsys_gateway/transaction-rejected.html'),
-        name='transaction-rejected'),
+        name='redsys_gateway-transaction-rejected'),
 ]
