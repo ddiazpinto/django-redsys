@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}RedSys's Gateway{% endblock %}</title>
+    {% block headers %}{% endblock %}
+</head>
+<body>
+    {% block content %}
+        {% block form %}
+        <form name="redsys" id="redsys" method="post" action="{{ endpoint }}">
+            <input type="hidden" name="Ds_SignatureVersion" value="{{ Ds_SignatureVersion }}"/>
+            <input type="hidden" name="Ds_MerchantParameters" value="{{ Ds_MerchantParameters }}"/>
+            <input type="hidden" name="Ds_Signature" value="{{ Ds_Signature }}"/>
+        </form>
+        {% endblock %}
+        <script>
+            window.document.redsys.submit();
+        </script>
+    {% endblock %}
+</body>
+</html>
