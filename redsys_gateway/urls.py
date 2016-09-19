@@ -6,6 +6,7 @@ from django.views.generic import TemplateView
 from .views import (response_view)
 
 
+app_name = 'redsys_gateway'
 urlpatterns = [
     url(r'^response/$',
         response_view,

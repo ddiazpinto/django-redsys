@@ -42,7 +42,7 @@ class RedirectView(FormView):
         request.currency = settings.REDSYS_CURRENCY
         request.transaction_type = settings.REDSYS_TRANSACTIONTYPE
         request.order = self.get_order(form)
-        request.amount = self.amount(form)
+        request.amount = self.get_amount(form)
         request.merchant_data = self.get_merchant_data(form)
         request = self.set_request_parameters(request, form)
         args = client.prepare(request)
