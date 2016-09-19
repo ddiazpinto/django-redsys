@@ -29,7 +29,7 @@ class RedirectView(FormView):
         return request
 
     def form_valid(self, form):
-        client = RedirectClient(settings.REDSYS_SECRET_KEY)
+        client = RedirectClient(settings.REDSYS_SECRET_KEY, settings.REDSYS_SANDBOX)
         request = client.create_request()
         request.merchant_code = settings.REDSYS_MERCHANT_CODE
         request.terminal = settings.REDSYS_TERMINAL
