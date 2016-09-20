@@ -1,4 +1,3 @@
-from django.core.urlresolvers import reverse_lazy
 from django.views.generic.edit import FormView
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -45,7 +44,7 @@ class RedirectView(FormView):
         request.amount = self.get_amount(form)
         request.merchant_data = self.get_merchant_data(form)
         request = self.set_request_parameters(request, form)
-        args = client.prepare(request)
+        args = client.prepare_request(request)
         args.update({
             'endpoint': client.endpoint
         })

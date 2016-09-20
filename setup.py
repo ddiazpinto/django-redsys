@@ -9,11 +9,11 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='redsys_gateway',
-    version='0.1',
+    version='0.2.0',
     packages=find_packages(),
     include_package_data=True,
     license='MIT License',
-    description='A simple module to handle payments through RedSys in Django.',
+    description='A simple, clean and less dependant Django app to handle payments through RedSys.',
     long_description=README,
     url='https://github.com/ddiazpinto/django-redsys',
     author='David D&iacute;az',
@@ -33,6 +33,6 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
     dependency_links=[
-        'https://github.com/ddiazpinto/python-redsys#egg=redsys'
+        'https://github.com/ddiazpinto/python-redsys.git@0.2.0#egg=redsys'
     ],
 )
