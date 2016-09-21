@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.core.exceptions import SuspiciousOperation
-from redsys.client import RedirectClient
+from redsys.client import RedirectClient, SIGNATURE, MERCHANT_PARAMETERS, SIGNATURE_VERSION
 
 from .signals import pre_transaction, post_transaction, transaction_accepted, transaction_rejected
 from .forms import GatewayForm
@@ -29,7 +29,6 @@ class RedirectView(FormView):
 
     def form_valid(self, form):
         url_base = "{0}://{1}".format(self.request.scheme, self.request.get_host())
-
         client = RedirectClient(settings.REDSYS_SECRET_KEY, settings.REDSYS_SANDBOX)
         request = client.create_request()
         request.merchant_code = settings.REDSYS_MERCHANT_CODE
@@ -59,8 +58,10 @@ class RedirectView(FormView):
 def response_view(request):
     form = GatewayForm(request.POST)
     if form.is_valid():
-        client = RedirectClient()
-        response = client.create_response(**form.cleaned_data)
+        client = RedirectClient(settings.REDSYS_SECRET_KEY, settings.REDSYS_SANDBOX)
+        response = client.create_response(form.cleaned_data[SIGNATURE],
+                                          form.cleaned_data[MERCHANT_PARAMETERS],
+                                          form.cleaned_data[SIGNATURE_VERSION])
         post_transaction.send(sender=None, response=response)
         if response.is_authorized():
             transaction_accepted.send(sender=None, response=response)
