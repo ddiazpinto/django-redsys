@@ -33,6 +33,6 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
     dependency_links=[
-        'https://github.com/ddiazpinto/python-redsys.git@0.2.1#egg=redsys'
+        'https://github.com/ddiazpinto/python-redsys.git@0.2.3#egg=redsys'
     ],
 )
