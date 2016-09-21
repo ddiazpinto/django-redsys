@@ -28,6 +28,8 @@ class RedirectView(FormView):
         return request
 
     def form_valid(self, form):
+        url_base = "{0}://{1}".format(self.request.scheme, self.request.get_host())
+
         client = RedirectClient(settings.REDSYS_SECRET_KEY, settings.REDSYS_SANDBOX)
         request = client.create_request()
         request.merchant_code = settings.REDSYS_MERCHANT_CODE
@@ -35,9 +37,9 @@ class RedirectView(FormView):
         request.titular = settings.REDSYS_TITULAR
         request.terminal = settings.REDSYS_TERMINAL
         request.product_description = settings.REDSYS_PRODUCT_DESCRIPTION
-        request.merchant_url = reverse("redsys_gateway-response")
-        request.url_ok = reverse("redsys_gateway-transaction-accepted")
-        request.url_ko = reverse("redsys_gateway-transaction-rejected")
+        request.merchant_url = url_base + reverse("redsys_gateway-response")
+        request.url_ok = url_base + reverse("redsys_gateway-transaction-accepted")
+        request.url_ko = url_base + reverse("redsys_gateway-transaction-rejected")
         request.currency = settings.REDSYS_CURRENCY
         request.transaction_type = settings.REDSYS_TRANSACTIONTYPE
         request.order = self.get_order(form)
