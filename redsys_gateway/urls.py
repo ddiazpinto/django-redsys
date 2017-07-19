@@ -1,19 +1,11 @@
-from __future__ import absolute_import, unicode_literals
-
 from django.conf.urls import url
-from django.views.generic import TemplateView
-
-from .views import (response_view)
+from . import views
 
 
+app_name = 'redsys_gateway'
 urlpatterns = [
-    url(r'^response/$',
-        response_view,
-        name='redsys_gateway-response'),
-    url(r'^accepted/$',
-        TemplateView.as_view(template_name='redsys_gateway/transaction-accepted.html'),
-        name='redsys_gateway-transaction-accepted'),
-    url(r'^rejected/$',
-        TemplateView.as_view(template_name='redsys_gateway/transaction-rejected.html'),
-        name='redsys_gateway-transaction-rejected'),
+    url(r'^redirect/$', views.redirect_view, name='redirect'),
+    url(r'^response/$', views.response_view, name='response'),
+    url(r'^accepted/$', views.transaction_accepted_view, name='accepted'),
+    url(r'^rejected/$', views.transaction_rejected_view, name='rejected'),
 ]

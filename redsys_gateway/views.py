@@ -1,57 +1,78 @@
-from django.views.generic.edit import FormView
+from django.utils.translation import ugettext as _
+from django.views.generic.edit import FormView, View
+from django.views.generic.base import TemplateView
+from django.utils.module_loading import import_string
 from django.conf import settings
+from django.shortcuts import render
 from django.core.urlresolvers import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.core.exceptions import SuspiciousOperation
 from redsys.client import RedirectClient, SIGNATURE, MERCHANT_PARAMETERS, SIGNATURE_VERSION
-
-from .signals import pre_transaction, post_transaction, transaction_accepted, transaction_rejected
+from .signals import (
+    pre_transaction, post_transaction, transaction_accepted,
+    transaction_rejected, invalid_response, suspicious_response
+)
 from .forms import GatewayForm
 
 
-class RedirectView(FormView):
+class RedsysRedirectMixin(object):
+    def get_order_object(self, request,  *args, **kwargs):
+        raise NotImplementedError
 
-    amount = None
-    order = None
+    def get_order(self, request, order, *args, **kwargs):
+        raise NotImplementedError
 
-    def get_order(self, form):
-        return self.order
+    def get_amount(self, request, order, *args, **kwargs):
+        raise NotImplementedError
 
-    def get_amount(self, form):
-        return self.amount
+    def get_merchant_data(self, request, order, *args, **kwargs):
+        return ""
 
-    def get_merchant_data(self, form):
-        return ''
+    def get_request_parameters(self, request, order, *args, **kwargs):
+        return {}
 
-    def set_request_parameters(self, request, form):
-        return request
+    def get_redirection_template_name(self):
+        return 'redsys_gateway/redirect.html'
+
+    def process(self, request, *args, **kwargs):
+        client = RedirectClient(settings.REDSYS_SECRET_KEY, settings.REDSYS_SANDBOX)
+        transaction_request = client.create_request()
+        # Set default data and merchant data provided in settings
+        transaction_request.merchant_code = settings.REDSYS_MERCHANT_CODE
+        transaction_request.merchant_name = settings.REDSYS_MERCHANT_NAME
+        transaction_request.titular = settings.REDSYS_TITULAR
+        transaction_request.terminal = settings.REDSYS_TERMINAL
+        transaction_request.product_description = settings.REDSYS_PRODUCT_DESCRIPTION
+        transaction_request.merchant_url = request.build_absolute_uri(reverse("redsys_gateway:response"))
+        transaction_request.url_ok = request.build_absolute_uri(reverse("redsys_gateway:accepted"))
+        transaction_request.url_ko = request.build_absolute_uri(reverse("redsys_gateway:rejected"))
+        transaction_request.currency = settings.REDSYS_CURRENCY
+        transaction_request.transaction_type = settings.REDSYS_TRANSACTIONTYPE
+        # Set custom data
+        order = self.get_order_object(request,  *args, **kwargs)
+        transaction_request.order = self.get_order(request, order)
+        transaction_request.amount = self.get_amount(request, order)
+        transaction_request.merchant_data = self.get_merchant_data(request, order)
+        request_parameters = self.get_request_parameters(request, order)
+        for key, value in request_parameters.items():
+            setattr(transaction_request, key, value)
+        args = client.prepare_request(transaction_request)
+        args.update({'endpoint': client.endpoint})
+        pre_transaction.send(sender=self, request=request, order_object=order, transaction_request=transaction_request)
+        return render(self.get_redirection_template_name(), **args)
+
+
+class RedsysRedirectTemplateView(RedsysRedirectMixin, TemplateView):
+
+    def get(self, request, *args, **kwargs):
+        return self.process(request, *args, **kwargs)
+
+
+class RedsysRedirectFormView(RedsysRedirectMixin, FormView):
 
     def form_valid(self, form):
-        url_base = "{0}://{1}".format(self.request.scheme, self.request.get_host())
-        client = RedirectClient(settings.REDSYS_SECRET_KEY, settings.REDSYS_SANDBOX)
-        request = client.create_request()
-        request.merchant_code = settings.REDSYS_MERCHANT_CODE
-        request.merchant_name = settings.REDSYS_MERCHANT_NAME
-        request.titular = settings.REDSYS_TITULAR
-        request.terminal = settings.REDSYS_TERMINAL
-        request.product_description = settings.REDSYS_PRODUCT_DESCRIPTION
-        request.merchant_url = url_base + reverse("redsys_gateway-response")
-        request.url_ok = url_base + reverse("redsys_gateway-transaction-accepted")
-        request.url_ko = url_base + reverse("redsys_gateway-transaction-rejected")
-        request.currency = settings.REDSYS_CURRENCY
-        request.transaction_type = settings.REDSYS_TRANSACTIONTYPE
-        request.order = self.get_order(form)
-        request.amount = self.get_amount(form)
-        request.merchant_data = self.get_merchant_data(form)
-        request = self.set_request_parameters(request, form)
-        args = client.prepare_request(request)
-        args.update({
-            'endpoint': client.endpoint
-        })
-        pre_transaction.send(sender=self, request=request, form=form)
-        self.template_name = 'redsys_gateway/redirect.html'
-        return self.render_to_response(self.get_context_data(**args))
+        return self.process(self.request)
 
 
 @csrf_exempt
@@ -59,14 +80,44 @@ def response_view(request):
     form = GatewayForm(request.POST)
     if form.is_valid():
         client = RedirectClient(settings.REDSYS_SECRET_KEY, settings.REDSYS_SANDBOX)
-        response = client.create_response(form.cleaned_data[SIGNATURE],
-                                          form.cleaned_data[MERCHANT_PARAMETERS],
-                                          form.cleaned_data[SIGNATURE_VERSION])
-        post_transaction.send(sender=None, response=response)
-        if response.is_authorized():
-            transaction_accepted.send(sender=None, response=response)
+        try:
+            transaction_response = client.create_response(
+                form.cleaned_data[SIGNATURE],
+                form.cleaned_data[MERCHANT_PARAMETERS],
+                form.cleaned_data[SIGNATURE_VERSION]
+            )
+        except ValueError:
+            suspicious_response.send(sender=None, request=request, form=form)
+            raise SuspiciousOperation(_("It is impossible to create the response object from request data."))
+        post_transaction.send(sender=None, request=request, transaction_response=transaction_response)
+        if transaction_response.is_authorized():
+            transaction_accepted.send(sender=None, request=request, transaction_response=transaction_response)
         else:
-            transaction_rejected.send(sender=None, response=response)
+            transaction_rejected.send(sender=None, request=request, transaction_response=transaction_response)
     else:
-        raise SuspiciousOperation()
+        invalid_response.send(sender=None, request=request, form=form)
+        raise SuspiciousOperation(_("Response data do not meet the necessary format."))
     return HttpResponse()
+
+
+def get_redirect_view():
+    return import_string(settings.REDSYS_REDIRECT_VIEW)
+redirect_view = get_redirect_view()
+
+
+def get_transaction_accepted_view():
+    view = getattr(settings, 'REDSYS_TRANSACTION_ACCEPTED_VIEW', False)
+    if view:
+        return import_string(view)
+    else:
+        return TemplateView.as_view(template_name='redsys_gateway/transaction-accepted.html'),
+transaction_accepted_view = get_transaction_accepted_view()
+
+
+def get_transaction_rejected_view():
+    view = getattr(settings, 'REDSYS_TRANSACTION_REJECTED_VIEW', False)
+    if view:
+        return import_string(view)
+    else:
+        return TemplateView.as_view(template_name='redsys_gateway/transaction-rejected.html'),
+transaction_rejected_view = get_transaction_rejected_view()
