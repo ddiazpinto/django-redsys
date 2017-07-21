@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='redsys_gateway',
-    version='0.4.0',
+    version='0.4.2',
     packages=find_packages(),
     include_package_data=True,
     license='MIT License',
@@ -33,6 +33,6 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
     dependency_links=[
-        'https://github.com/ddiazpinto/python-redsys.git@0.2.4#egg=redsys'
+        'https://github.com/ddiazpinto/python-redsys.git@0.2.5#egg=redsys'
     ],
 )
