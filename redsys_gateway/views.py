@@ -17,8 +17,9 @@ from .forms import GatewayForm
 
 
 class RedsysRedirectMixin(object):
-    def get_order_object(self, request,  *args, **kwargs):
-        raise NotImplementedError
+
+    def get_order_object(self, request, order, *args, **kwargs):
+        return None
 
     def get_order(self, request, order, *args, **kwargs):
         raise NotImplementedError
@@ -50,16 +51,16 @@ class RedsysRedirectMixin(object):
         transaction_request.currency = settings.REDSYS_CURRENCY
         transaction_request.transaction_type = settings.REDSYS_TRANSACTIONTYPE
         # Set custom data
-        order = self.get_order_object(request,  *args, **kwargs)
-        transaction_request.order = self.get_order(request, order)
-        transaction_request.amount = self.get_amount(request, order)
-        transaction_request.merchant_data = self.get_merchant_data(request, order)
-        request_parameters = self.get_request_parameters(request, order)
+        order_object = self.get_order_object(request, *args, **kwargs)
+        transaction_request.order = self.get_order(request, *args, **kwargs)
+        transaction_request.amount = self.get_amount(request, *args, **kwargs)
+        transaction_request.merchant_data = self.get_merchant_data(request, *args, **kwargs)
+        request_parameters = self.get_request_parameters(request, *args, **kwargs)
         for key, value in request_parameters.items():
             setattr(transaction_request, key, value)
         args = client.prepare_request(transaction_request)
         args.update({'endpoint': client.endpoint})
-        pre_transaction.send(sender=self, request=request, order_object=order, transaction_request=transaction_request)
+        pre_transaction.send(sender=self, request=request, order_object=order_object, transaction_request=transaction_request)
         return render(self.get_redirection_template_name(), **args)
 
 
@@ -100,24 +101,21 @@ def response_view(request):
     return HttpResponse()
 
 
-def get_redirect_view():
-    return import_string(settings.REDSYS_REDIRECT_VIEW)
-redirect_view = get_redirect_view()
+def redirect_view(request):
+    return import_string(settings.REDSYS_REDIRECT_VIEW).as_view()(request)
 
 
-def get_transaction_accepted_view():
-    view = getattr(settings, 'REDSYS_TRANSACTION_ACCEPTED_VIEW', False)
+def accepted_view(request):
+    view = getattr(settings, 'REDSYS_TRANSACTION_ACCEPTED_VIEW', None)
     if view:
-        return import_string(view)
+        return import_string(view).as_view()(request)
     else:
-        return TemplateView.as_view(template_name='redsys_gateway/transaction-accepted.html'),
-transaction_accepted_view = get_transaction_accepted_view()
+        return TemplateView.as_view(template_name='redsys_gateway/accepted.html')(request),
 
 
-def get_transaction_rejected_view():
-    view = getattr(settings, 'REDSYS_TRANSACTION_REJECTED_VIEW', False)
+def rejected_view(request):
+    view = getattr(settings, 'REDSYS_TRANSACTION_REJECTED_VIEW', None)
     if view:
-        return import_string(view)
+        return import_string(view).as_view()(request)
     else:
-        return TemplateView.as_view(template_name='redsys_gateway/transaction-rejected.html'),
-transaction_rejected_view = get_transaction_rejected_view()
+        return TemplateView.as_view(template_name='redsys_gateway/rejected.html')(request),
