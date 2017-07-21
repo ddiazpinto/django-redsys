@@ -18,19 +18,19 @@ from .forms import GatewayForm
 
 class RedsysRedirectMixin(object):
 
-    def get_order_object(self, request, order, *args, **kwargs):
+    def get_order_object(self, request, *args, **kwargs):
         return None
 
-    def get_order(self, request, order, *args, **kwargs):
+    def get_order(self, request, *args, **kwargs):
         raise NotImplementedError
 
-    def get_amount(self, request, order, *args, **kwargs):
+    def get_amount(self, request, *args, **kwargs):
         raise NotImplementedError
 
-    def get_merchant_data(self, request, order, *args, **kwargs):
+    def get_merchant_data(self, request, *args, **kwargs):
         return ""
 
-    def get_request_parameters(self, request, order, *args, **kwargs):
+    def get_request_parameters(self, request, *args, **kwargs):
         return {}
 
     def get_redirection_template_name(self):
