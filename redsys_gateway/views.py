@@ -61,7 +61,7 @@ class RedsysRedirectMixin(object):
         args = client.prepare_request(transaction_request)
         args.update({'endpoint': client.endpoint})
         pre_transaction.send(sender=self, request=request, order_object=order_object, transaction_request=transaction_request)
-        return render(self.get_redirection_template_name(), **args)
+        return HttpResponse(render(request, self.get_redirection_template_name(), args))
 
 
 class RedsysRedirectTemplateView(RedsysRedirectMixin, TemplateView):
@@ -110,7 +110,7 @@ def accepted_view(request):
     if view:
         return import_string(view).as_view()(request)
     else:
-        return TemplateView.as_view(template_name='redsys_gateway/accepted.html')(request),
+        return TemplateView.as_view(template_name='redsys_gateway/accepted.html')(request)
 
 
 def rejected_view(request):
@@ -118,4 +118,4 @@ def rejected_view(request):
     if view:
         return import_string(view).as_view()(request)
     else:
-        return TemplateView.as_view(template_name='redsys_gateway/rejected.html')(request),
+        return TemplateView.as_view(template_name='redsys_gateway/rejected.html')(request)
