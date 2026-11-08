@@ -153,11 +153,43 @@ python manage.py migrate
 
 ## OK and KO pages
 
-`django_redsys:ok` and `django_redsys:ko` render `django_redsys/ok.html` and `django_redsys/ko.html` through `ResultView`, with the verified result as `redsys_response`. RedSys appends the signed result to the redirect only when the option "Enviar Parámetros en las URLs" is on in its portal. Without a result that verifies, or with an outcome that does not match the page (an authorized result on the KO page, or the reverse), the page answers `404`. With the option off, `url_ok` and `url_ko` point to the project's own views. A template with the same name in the project replaces the app's.
+`django_redsys:ok` and `django_redsys:ko` render `django_redsys/ok.html` and `django_redsys/ko.html` through `ResultView`, with the verified result as `redsys_response`. RedSys appends the signed result to the redirect only when the option "Enviar Parámetros en las URLs" is on in its portal. Without a result that verifies, or with an outcome that does not match the page (an authorized result on the KO page, or the reverse), the page answers `404`. With the option off, `url_ok` and `url_ko` point to the project's own views. The pages' look is the project's: see [Templates](#templates).
 
-## Templates and Content Security Policy
+## Templates
 
-`django_redsys/redirect.html` receives `endpoint` and `fields` (the three `Ds_*` fields) and submits the form with an inline script, with a `<noscript>` button as fallback. With Django's CSP middleware (Django 6.0 and later) and the `django.template.context_processors.csp` context processor, the script carries the request's nonce; the policy then needs `CSP.NONCE` in `script-src` and the RedSys host in `form-action`:
+| Template | Rendered by | Context | Blocks |
+|---|---|---|---|
+| `django_redsys/redirect.html` | Payment views | `endpoint`, `fields` (the three `Ds_*` fields) | `title`, `head`, `content` |
+| `django_redsys/ok.html` | `django_redsys:ok` | `redsys_response` | `title`, `content` |
+| `django_redsys/ko.html` | `django_redsys:ko` | `redsys_response` | `title`, `content` |
+
+The app's templates are plain standalone pages. A template with the same path in a directory of the `DIRS` option of `TEMPLATES`, or in an app listed before `django_redsys` in `INSTALLED_APPS`, replaces it, and it can extend the project's own base template:
+
+```django
+{# templates/django_redsys/ok.html #}
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Payment completed</h1>
+<p>Order {{ redsys_response.order }}: {{ redsys_response.amount }} paid.</p>
+{% endblock %}
+```
+
+An override can also extend the template it replaces and change only some blocks, with `{{ block.super }}` for the original content:
+
+```django
+{# templates/django_redsys/redirect.html #}
+{% extends "django_redsys/redirect.html" %}
+
+{% block title %}Redirecting to the bank{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/payment.css">{% endblock %}
+```
+
+A replacement of `redirect.html` that does not extend the original keeps its form: `action="{{ endpoint }}"`, one hidden input per item of `fields`, and the script or button that submits it. One payment view can use another template through `redirect_template_name`.
+
+### Content Security Policy
+
+`django_redsys/redirect.html` submits the form with an inline script, with a `<noscript>` button as fallback. With Django's CSP middleware (Django 6.0 and later) and the `django.template.context_processors.csp` context processor, the script carries the request's nonce; the policy then needs `CSP.NONCE` in `script-src` and the RedSys host in `form-action`:
 
 ```python
 from django.utils.csp import CSP
@@ -167,8 +199,6 @@ SECURE_CSP = {
     'form-action': [CSP.SELF, 'https://sis.redsys.es', 'https://sis-t.redsys.es:25443'],
 }
 ```
-
-Every template defines a `title` and a `content` block; `redirect.html` also defines `head`.
 
 ## Direct operations
 

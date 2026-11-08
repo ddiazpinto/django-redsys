@@ -12,6 +12,7 @@ Documentation only; the code is the same as 1.0.0.
 
 - `SECURITY.md`: supported versions, private vulnerability reporting and the security model.
 - PyPI version badge in the README.
+- README: how to override the templates, their context and their blocks.
 
 ## [1.0.0] - 2026-11-08
 
