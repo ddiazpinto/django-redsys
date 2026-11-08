@@ -4,10 +4,19 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-08
+
+Documentation only; the code is the same as 1.0.0.
+
 ### Added
 
 - `SECURITY.md`: supported versions, private vulnerability reporting and the security model.
-- PyPI version badge in the README; the Python and Django badges read the package metadata.
+- PyPI version badge in the README.
+- `docs/templates.md`: the templates, their context and blocks, how to override them, and the Content Security Policy of the redirect page; the README summarizes it.
+
+### Fixed
+
+- README links to `docs/`, `LICENSE` and `NOTICE` are absolute, so they work on the PyPI page.
 
 ## [1.0.0] - 2026-11-08
 

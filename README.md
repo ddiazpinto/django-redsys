@@ -153,22 +153,29 @@ python manage.py migrate
 
 ## OK and KO pages
 
-`django_redsys:ok` and `django_redsys:ko` render `django_redsys/ok.html` and `django_redsys/ko.html` through `ResultView`, with the verified result as `redsys_response`. RedSys appends the signed result to the redirect only when the option "Enviar Parámetros en las URLs" is on in its portal. Without a result that verifies, or with an outcome that does not match the page (an authorized result on the KO page, or the reverse), the page answers `404`. With the option off, `url_ok` and `url_ko` point to the project's own views. A template with the same name in the project replaces the app's.
+`django_redsys:ok` and `django_redsys:ko` render `django_redsys/ok.html` and `django_redsys/ko.html` through `ResultView`, with the verified result as `redsys_response`. RedSys appends the signed result to the redirect only when the option "Enviar Parámetros en las URLs" is on in its portal. Without a result that verifies, or with an outcome that does not match the page (an authorized result on the KO page, or the reverse), the page answers `404`. With the option off, `url_ok` and `url_ko` point to the project's own views. The pages' look is the project's: see [Templates](#templates).
 
-## Templates and Content Security Policy
+## Templates
 
-`django_redsys/redirect.html` receives `endpoint` and `fields` (the three `Ds_*` fields) and submits the form with an inline script, with a `<noscript>` button as fallback. With Django's CSP middleware (Django 6.0 and later) and the `django.template.context_processors.csp` context processor, the script carries the request's nonce; the policy then needs `CSP.NONCE` in `script-src` and the RedSys host in `form-action`:
+| Template | Rendered by | Context |
+|---|---|---|
+| `django_redsys/redirect.html` | Payment views | `endpoint`, `fields` (the three `Ds_*` fields) |
+| `django_redsys/ok.html` | `django_redsys:ok` | `redsys_response` |
+| `django_redsys/ko.html` | `django_redsys:ko` | `redsys_response` |
 
-```python
-from django.utils.csp import CSP
+The app's templates are plain standalone pages. A template at the same path in a directory of the `DIRS` option of `TEMPLATES`, or in an app listed before `django_redsys` in `INSTALLED_APPS`, replaces the app's, usually extending the project's base template:
 
-SECURE_CSP = {
-    'script-src': [CSP.SELF, CSP.NONCE],
-    'form-action': [CSP.SELF, 'https://sis.redsys.es', 'https://sis-t.redsys.es:25443'],
-}
+```django
+{# templates/django_redsys/ok.html #}
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Payment completed</h1>
+<p>Order {{ redsys_response.order }}: {{ redsys_response.amount }} paid.</p>
+{% endblock %}
 ```
 
-Every template defines a `title` and a `content` block; `redirect.html` also defines `head`.
+Changing only some blocks, replacing the redirect page, a template per view, translations and the Content Security Policy of the redirect page: [`docs/templates.md`](https://github.com/ddiazpinto/django-redsys/blob/master/docs/templates.md).
 
 ## Direct operations
 
@@ -186,12 +193,12 @@ response.is_refunded()
 
 | | |
 |---|---|
-| Version | 1.0.0 |
+| Version | 1.0.1 |
 | Django | 5.2 LTS, 6.0 and 6.1 |
 | Python | 3.10 to 3.15 (Django 6.0 and later need 3.12) |
 | python-redsys | 2.2 and later |
 
-Upgrading from 0.4: [`docs/migration-0.4-to-1.0.md`](docs/migration-0.4-to-1.0.md).
+Upgrading from 0.4: [`docs/migration-0.4-to-1.0.md`](https://github.com/ddiazpinto/django-redsys/blob/master/docs/migration-0.4-to-1.0.md).
 
 ## Development
 
@@ -203,4 +210,4 @@ uv run ruff check django_redsys tests && uv run ruff format --check django_redsy
 
 ## License
 
-Apache License 2.0, as python-redsys. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). Releases up to 0.4.2 were published under the MIT License.
+Apache License 2.0, as python-redsys. See [`LICENSE`](https://github.com/ddiazpinto/django-redsys/blob/master/LICENSE) and [`NOTICE`](https://github.com/ddiazpinto/django-redsys/blob/master/NOTICE). Releases up to 0.4.2 were published under the MIT License.

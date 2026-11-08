@@ -216,6 +216,17 @@ def test_result_page_shows_the_verified_response(client, notification, page, cod
     assert 'Order 1234abcd.' in response.content.decode()
 
 
+def test_a_project_template_extends_and_overrides_the_app_s(client, notification):
+    # tests/templates/django_redsys/ok.html extends the app's ok.html of the same name.
+    content = client.get('/redsys/ok/', signed(notification)).content.decode()
+    assert 'Order 1234abcd.' in content
+    assert 'Thank you for your order.' in content
+    assert (
+        'Thank you for your order.'
+        not in client.get('/redsys/ko/', {**signed({**notification, 'Ds_Response': '0190'})}).content.decode()
+    )
+
+
 @pytest.mark.parametrize(('page', 'code'), [('ok', '0190'), ('ko', '0000')])
 def test_result_page_with_the_other_outcome_is_404(client, notification, page, code):
     notification['Ds_Response'] = code
