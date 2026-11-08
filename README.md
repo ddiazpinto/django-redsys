@@ -1,6 +1,6 @@
 # django-redsys
 
-[![CI](https://github.com/ddiazpinto/django-redsys/actions/workflows/ci.yml/badge.svg)](https://github.com/ddiazpinto/django-redsys/actions/workflows/ci.yml) [![PyPI](https://img.shields.io/pypi/v/django-redsys.svg)](https://pypi.org/project/django-redsys/) ![Python versions](https://img.shields.io/pypi/pyversions/django-redsys.svg) ![Django versions](https://img.shields.io/pypi/frameworkversions/django/django-redsys.svg) [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![CI](https://github.com/ddiazpinto/django-redsys/actions/workflows/ci.yml/badge.svg)](https://github.com/ddiazpinto/django-redsys/actions/workflows/ci.yml) [![PyPI](https://img.shields.io/pypi/v/django-redsys.svg)](https://pypi.org/project/django-redsys/) ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg) ![Django 5.2+](https://img.shields.io/badge/django-5.2%2B-blue.svg) [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Django views, URLs and signals for RedSys TPV Virtual payments over the *redirect connection*. Signing, verification, parameters, constants and response codes come from [python-redsys](https://github.com/ddiazpinto/python-redsys); this app adds the Django side: the page that sends the cardholder to RedSys, the endpoint that receives RedSys's notification, the OK and KO pages, and signals.
 
