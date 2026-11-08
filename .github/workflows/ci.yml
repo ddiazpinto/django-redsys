@@ -46,7 +46,15 @@ jobs:
       - name: Install (locked)
         run: uv sync --locked --no-default-groups --group test --python ${{ matrix.python-version }}
       - name: Test
-        run: uv run --no-sync pytest -q --cov=django_redsys
+        run: uv run --no-sync pytest -q --cov=django_redsys --cov-report=xml
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.12'
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: coverage.xml
+          # Empty on fork pull requests, where Codecov accepts a tokenless upload for public repositories.
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
 
   # The supported Django series the lock does not pick, on the oldest and newest Python each one supports.
   django:

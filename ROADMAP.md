@@ -4,7 +4,6 @@ Forward-looking only. Completed work lives in `CHANGELOG.md`.
 
 ## Pending
 
-- [ ] Coverage upload to Codecov, once the repository is linked and `CODECOV_TOKEN` is set.
 
 ## Ideas
 
