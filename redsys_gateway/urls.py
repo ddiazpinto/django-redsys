@@ -1,11 +1,10 @@
-from django.conf.urls import url
-from . import views
+from django.urls import path
 
+from . import views
 
 app_name = 'redsys_gateway'
 urlpatterns = [
-    url(r'^redirect/$', views.redirect_view, name='redirect'),
-    url(r'^response/$', views.response_view, name='response'),
-    url(r'^accepted/$', views.accepted_view, name='accepted'),
-    url(r'^rejected/$', views.rejected_view, name='rejected'),
+    path('notification/', views.NotificationView.as_view(), name='notification'),
+    path('ok/', views.ResultView.as_view(template_name='redsys_gateway/ok.html'), name='ok'),
+    path('ko/', views.ResultView.as_view(template_name='redsys_gateway/ko.html'), name='ko'),
 ]

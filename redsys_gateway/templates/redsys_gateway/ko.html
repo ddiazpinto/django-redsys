@@ -1,0 +1,15 @@
+{% load i18n %}{% get_current_language as LANGUAGE_CODE %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>{% block title %}{% translate "Payment not completed" %}{% endblock %}</title>
+</head>
+<body>
+    {% block content %}
+    <h1>{% translate "Payment not completed" %}</h1>
+    {% if redsys_response.order %}<p>{% blocktranslate with order=redsys_response.order %}Order {{ order }}.{% endblocktranslate %}</p>{% endif %}
+    {% endblock %}
+</body>
+</html>

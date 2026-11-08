@@ -1,1 +1,1 @@
-default_app_config = 'redsys_gateway.apps.RedsysGateway'
+

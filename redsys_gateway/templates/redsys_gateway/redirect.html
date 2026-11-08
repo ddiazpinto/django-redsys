@@ -1,22 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
+{% load i18n %}{% get_current_language as LANGUAGE_CODE %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}RedSys's Gateway{% endblock %}</title>
-    {% block headers %}{% endblock %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>{% block title %}{% translate "Redirecting to the payment page" %}{% endblock %}</title>
+    {% block head %}{% endblock %}
 </head>
 <body>
     {% block content %}
-        {% block form %}
-        <form name="redsys" id="redsys" method="post" action="{{ endpoint }}">
-            <input type="hidden" name="Ds_SignatureVersion" value="{{ Ds_SignatureVersion }}"/>
-            <input type="hidden" name="Ds_MerchantParameters" value="{{ Ds_MerchantParameters }}"/>
-            <input type="hidden" name="Ds_Signature" value="{{ Ds_Signature }}"/>
-        </form>
-        {% endblock %}
-        <script>
-            window.document.redsys.submit();
-        </script>
+    <form id="redsys" method="post" action="{{ endpoint }}">
+        {% for name, value in fields.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">
+        {% endfor %}
+        <noscript><button type="submit">{% translate "Continue to the payment page" %}</button></noscript>
+    </form>
+    <script{% if csp_nonce is not None %} nonce="{{ csp_nonce }}"{% endif %}>document.getElementById('redsys').submit();</script>
     {% endblock %}
 </body>
 </html>
