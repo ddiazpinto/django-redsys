@@ -1,4 +1,4 @@
 graft docs
 graft tests
-include CHANGELOG.md CONTRIBUTORS.md ROADMAP.md
+include CHANGELOG.md CONTRIBUTORS.md ROADMAP.md SECURITY.md
 global-exclude *.py[cod] __pycache__
