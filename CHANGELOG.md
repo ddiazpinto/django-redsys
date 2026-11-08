@@ -12,7 +12,11 @@ Documentation only; the code is the same as 1.0.0.
 
 - `SECURITY.md`: supported versions, private vulnerability reporting and the security model.
 - PyPI version badge in the README.
-- README: how to override the templates, their context and their blocks.
+- `docs/templates.md`: the templates, their context and blocks, how to override them, and the Content Security Policy of the redirect page; the README summarizes it.
+
+### Fixed
+
+- README links to `docs/`, `LICENSE` and `NOTICE` are absolute, so they work on the PyPI page.
 
 ## [1.0.0] - 2026-11-08
 
