@@ -42,10 +42,10 @@ lint = ["ruff"]
 dev = [{ include-group = "test" }, { include-group = "lint" }]
 
 [tool.setuptools.packages.find]
-include = ["redsys_gateway*"]
+include = ["django_redsys*"]
 
 [tool.setuptools.package-data]
-redsys_gateway = ["templates/redsys_gateway/*.html"]
+django_redsys = ["templates/django_redsys/*.html"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"

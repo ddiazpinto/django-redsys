@@ -4,7 +4,7 @@ from django import forms
 from django.urls import include, path
 from redsys import transactions
 
-from redsys_gateway.views import RedsysPaymentFormView, RedsysPaymentView
+from django_redsys.views import RedsysPaymentFormView, RedsysPaymentView
 
 
 class PaymentView(RedsysPaymentView):
@@ -40,5 +40,5 @@ urlpatterns = [
     path('preauthorize/', PreauthorizationView.as_view(), name='preauthorize'),
     path('missing/', MissingFieldsView.as_view(), name='missing'),
     path('pay-form/', PaymentFormView.as_view(), name='pay-form'),
-    path('redsys/', include('redsys_gateway.urls')),
+    path('redsys/', include('django_redsys.urls')),
 ]
