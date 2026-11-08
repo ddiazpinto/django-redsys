@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class RedsysGateway(AppConfig):
+class RedsysGatewayConfig(AppConfig):
     name = 'redsys_gateway'
-    verbose_name = "RedSys"
+    verbose_name = 'RedSys'
