@@ -99,7 +99,8 @@ RedSys posts the result of every operation to `merchant_url`. `NotificationView`
 | `notification_received` | A notification passed verification. | `request`, `response` |
 | `notification_authorized` | After `notification_received`, when `response.is_authorized()`. | `request`, `response` |
 | `notification_denied` | After `notification_received`, otherwise. | `request`, `response` |
-| `notification_invalid` | A notification failed verification or parsing. | `request`, `error` |
+| `notification_invalid` | A notification failed verification or parsing, or came from an address outside `REDSYS_NOTIFICATION_IPS`. | `request`, `error` |
+| `notification_repeated` | With [the notification record](#notification-record), a verified notification whose payload already arrived; sent instead of the three above. | `request`, `response` |
 
 `sender` is the view class. The notification is the source of truth for an operation's outcome; the OK and KO pages are not, since the cardholder may never reach them.
 
@@ -131,6 +132,24 @@ REDSYS_NOTIFICATION_IPS = ['192.0.2.10', '198.51.100.0/24']  # RedSys's addresse
 ```
 
 The address compared is `REMOTE_ADDR`. Behind a proxy or load balancer, `REMOTE_ADDR` is the proxy's unless the server sets it from the forwarded header; a subclass of `NotificationView` can override `is_allowed_sender()` to read it another way. The signature check stays: the list only saves the work of parsing what does not come from RedSys.
+
+## Notification record
+
+`django_redsys.notifications`, an optional app, records every verified notification and turns a repeat into `notification_repeated`:
+
+```python
+INSTALLED_APPS = [..., 'django_redsys', 'django_redsys.notifications']
+```
+
+```bash
+python manage.py migrate
+```
+
+- A notification is a repeat when its `Ds_MerchantParameters` is identical to one already recorded (SHA-256 digest, unique). A new result for the same order is not a repeat. Idempotency per order stays with the receivers.
+- The record and the signals commit in one transaction on the database the model is routed to: a receiver that raises leaves nothing recorded, and the next arrival of the same notification is processed as new.
+- Each record keeps the order, the response code and `SISnnnn` error code, whether it was authorized, the amount and currency, the transaction type, the authorization code, the merchant code, terminal and environment (`TEST`, `PROD`, ...), whether the payment was 3-D Secure authenticated (`Ds_SecurePayment`), the payment method that processed it (`Ds_ProcessedPayMethod`), RedSys's date and hour as sent (`Ds_Date`, `Ds_Hour`), the sender address, the first and last arrival, and the number of arrivals. Card data, stored-card tokens (`Ds_Merchant_Identifier`, `Ds_Merchant_Cof_Txnid`) and `merchant_data` are not stored: a token charges the card again, and `merchant_data` is free text. Invalid notifications are not recorded.
+- The admin lists the records read-only (`django.contrib.admin` installed). `python manage.py purge_redsys_notifications --older-than DAYS` deletes the records first received more than `DAYS` days ago, for a retention period run from cron or a scheduler.
+- The app label is `django_redsys_notifications`.
 
 ## OK and KO pages
 

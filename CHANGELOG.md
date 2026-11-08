@@ -16,9 +16,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 - `get_redsys_client()` on every view, to pay or verify with another account than `REDSYS_CLIENT`; a payment view whose `get_redsys_fields()` returns `None` answers `404`.
 - `REDSYS_NOTIFICATION_IPS`: an optional list of addresses and networks allowed to post notifications; others get `403` before their payload is parsed.
 - System checks: `django_redsys.E001` and `E002` for invalid settings, `W001` on `check --deploy` for a non-production environment with `DEBUG` off.
+- `django_redsys.notifications`, an optional app that records verified notifications (read-only admin, `purge_redsys_notifications` command) and turns a repeated payload into the `notification_repeated` signal, in one transaction with the receivers.
 - The payment page is sent with `Cache-Control: no-store`, has a `<noscript>` submit button, and carries the CSP nonce of Django's CSP middleware.
 - Tests, `pyproject.toml` packaging and a `uv.lock`; the source distribution carries the tests and `docs/`.
-- CI on GitHub Actions: lint, tests on Python 3.10 to 3.15 and on every supported Django series, the lowest declared dependencies; Dependabot for uv and the actions. A release workflow publishes a `vX.Y.Z` tag to PyPI through trusted publishing.
+- CI on GitHub Actions: lint, migrations in sync, tests on Python 3.10 to 3.15 and on every supported Django series, the lowest declared dependencies; Dependabot for uv and the actions. A release workflow publishes a `vX.Y.Z` tag to PyPI through trusted publishing.
 
 ### Changed
 
