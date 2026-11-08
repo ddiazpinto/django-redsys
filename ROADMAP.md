@@ -4,7 +4,6 @@ Forward-looking only. Completed work lives in `CHANGELOG.md`.
 
 ## Pending
 
-- [ ] Repository hardening (rulesets with `ci-ok` as the required check, secret scanning and push protection, CodeQL, private vulnerability reporting, immutable releases).
 - [ ] Coverage upload to Codecov, once the repository is linked and `CODECOV_TOKEN` is set.
 
 ## Ideas

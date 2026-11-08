@@ -4,10 +4,14 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-08
+
+Documentation only; the code is the same as 1.0.0.
+
 ### Added
 
 - `SECURITY.md`: supported versions, private vulnerability reporting and the security model.
-- PyPI version badge in the README; the Python and Django badges read the package metadata.
+- PyPI version badge in the README.
 
 ## [1.0.0] - 2026-11-08
 

@@ -186,7 +186,7 @@ response.is_refunded()
 
 | | |
 |---|---|
-| Version | 1.0.0 |
+| Version | 1.0.1 |
 | Django | 5.2 LTS, 6.0 and 6.1 |
 | Python | 3.10 to 3.15 (Django 6.0 and later need 3.12) |
 | python-redsys | 2.2 and later |
