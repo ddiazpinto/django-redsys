@@ -4,7 +4,9 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
-1.0.0: a rewrite on python-redsys 2.2 and Django 5.2 or later, published on PyPI as `django-redsys`. Upgrading from 0.4: [`docs/migration-0.4-to-1.0.md`](docs/migration-0.4-to-1.0.md).
+## [1.0.0] - 2026-11-08
+
+A rewrite on python-redsys 2.2 and Django 5.2 or later, published on PyPI as `django-redsys`. Upgrading from 0.4: [`docs/migration-0.4-to-1.0.md`](docs/migration-0.4-to-1.0.md).
 
 ### Added
 
