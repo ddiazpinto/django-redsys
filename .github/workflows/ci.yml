@@ -26,6 +26,8 @@ jobs:
         run: uv run --no-sync ruff check django_redsys tests
       - name: Ruff format
         run: uv run --no-sync ruff format --check django_redsys tests
+      - name: Migrations are in sync with the models
+        run: uv run --no-sync python -m django makemigrations --check --dry-run --settings=tests.settings
 
   # The lock resolves Django 5.2 LTS below Python 3.12 and the latest Django from 3.12 on.
   test:
