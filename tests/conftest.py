@@ -20,6 +20,11 @@ def decoded(fields):
     return decode_merchant_parameters(fields[MERCHANT_PARAMETERS].encode())
 
 
+@pytest.fixture(autouse=True)
+def _database(db):
+    """The notification view records into the database when django_redsys.notifications is installed."""
+
+
 @pytest.fixture
 def notification():
     return {
@@ -31,4 +36,8 @@ def notification():
         'Ds_Terminal': '1',
         'Ds_TransactionType': '0',
         'Ds_MerchantData': 'cart=7',
+        'Ds_SecurePayment': '1',
+        'Ds_ProcessedPayMethod': '1',
+        'Ds_Date': '08/11/2026',
+        'Ds_Hour': '12:30',
     }
