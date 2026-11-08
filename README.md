@@ -27,7 +27,12 @@ urlpatterns = [..., path('redsys/', include('django_redsys.urls'))]
 
 ## Settings
 
-`REDSYS_CLIENT` is the only setting. Its keys are the keyword options of python-redsys's `RedirectClient`, passed through unchanged:
+| Setting | Use |
+|---|---|
+| `REDSYS_CLIENT` | Required. The account: the keyword options of python-redsys's `RedirectClient`. |
+| `REDSYS_NOTIFICATION_IPS` | Optional. Addresses or networks allowed to post notifications; see [Notification senders](#notification-senders). |
+
+The keys of `REDSYS_CLIENT`:
 
 | Key | Use |
 |---|---|
@@ -40,6 +45,8 @@ urlpatterns = [..., path('redsys/', include('django_redsys.urls'))]
 | `api_key` | A RedSys API key, read with `RedirectClient.from_api_key()`; replaces `secret_key`, `merchant_code`, `terminal` and the environment. |
 
 The keys go to the constructor unchanged, so an option a later python-redsys adds works without a django-redsys release. An unknown key, an invalid value, or `api_key` together with the values it replaces raises `ImproperlyConfigured`. See the [python-redsys configuration](https://github.com/ddiazpinto/python-redsys#configuration).
+
+`manage.py check` validates both settings (`django_redsys.E001`, `django_redsys.E002`). `manage.py check --deploy` warns when `REDSYS_CLIENT` targets an environment other than production while `DEBUG` is off (`django_redsys.W001`); a staging server that uses the test environment on purpose silences it with `SILENCED_SYSTEM_CHECKS`.
 
 ## Payment view
 
@@ -68,7 +75,8 @@ class PayOrderView(RedsysPaymentView):
 
 | Attribute or method | Use |
 |---|---|
-| `get_redsys_fields()` | Required. The keyword fields of the operation: `order`, `amount` and any other [redirect parameter](https://github.com/ddiazpinto/python-redsys/blob/master/docs/redirect-connection.md). |
+| `get_redsys_fields()` | Required. The keyword fields of the operation: `order`, `amount` and any other [redirect parameter](https://github.com/ddiazpinto/python-redsys/blob/master/docs/redirect-connection.md). `None` (or `Http404` raised) when there is no order to pay: the view answers `404`. |
+| `get_redsys_client()` | The client that signs, `get_client()` by default. A view that pays through another terminal or merchant returns its own `RedirectClient`; the notification and result views have the same method. |
 | `transaction_type` | `redsys.transactions.AUTHORIZATION` by default; `PREAUTHORIZATION`, `AUTHENTICATION` or `REFUND_WITHOUT_ORIGINAL` for the other redirect operations. |
 | `redirect_template_name` | `django_redsys/redirect.html` by default. |
 | `get_redsys_request()` | Builds and signs the python-redsys `Request`; sends `request_created`. |
@@ -95,23 +103,38 @@ RedSys posts the result of every operation to `merchant_url`. `NotificationView`
 
 `sender` is the view class. The notification is the source of truth for an operation's outcome; the OK and KO pages are not, since the cardholder may never reach them.
 
+A valid notification can arrive more than once. The signed result also reaches the cardholder's browser on the redirect to `url_ok` or `url_ko` (when the portal sends it, see below), and a copy posted to the notification URL verifies like the original. Receivers are idempotent: they act on the state of the order, not on the arrival of the signal, and check that the result matches what was asked for.
+
 ```python
+from django.db import transaction
 from django.dispatch import receiver
 from django_redsys.signals import notification_authorized
 
 
 @receiver(notification_authorized)
 def mark_paid(sender, request, response, **kwargs):
-    order = Order.objects.get(redsys_order=response.order)
-    if order.total == response.amount:
+    with transaction.atomic():
+        order = Order.objects.select_for_update().filter(redsys_order=response.order).first()
+        if order is None or order.is_paid or order.total != response.amount:
+            return
         order.mark_paid(authorization_code=response.authorization_code)
 ```
 
 `response` carries every result field (`order`, `amount`, `response_code`, `authorization_code`, `merchant_data`, `card_country`, ...) and `response.describe(language)` gives the meaning of the code; see the [response parameters](https://github.com/ddiazpinto/python-redsys/blob/master/docs/redirect-connection.md#response-parameters) and [response codes](https://github.com/ddiazpinto/python-redsys/blob/master/docs/response-codes.md). An exception in a receiver propagates, and the notification gets a `500`.
 
+## Notification senders
+
+`REDSYS_NOTIFICATION_IPS`, off by default, limits who may post to the notification URL. A request from any other address gets `403` before its payload is parsed, and `notification_invalid` is sent with a `PermissionDenied` error.
+
+```python
+REDSYS_NOTIFICATION_IPS = ['192.0.2.10', '198.51.100.0/24']  # RedSys's addresses, as the bank or RedSys gives them
+```
+
+The address compared is `REMOTE_ADDR`. Behind a proxy or load balancer, `REMOTE_ADDR` is the proxy's unless the server sets it from the forwarded header; a subclass of `NotificationView` can override `is_allowed_sender()` to read it another way. The signature check stays: the list only saves the work of parsing what does not come from RedSys.
+
 ## OK and KO pages
 
-`django_redsys:ok` and `django_redsys:ko` render `django_redsys/ok.html` and `django_redsys/ko.html` through `ResultView`. RedSys appends the signed result to the redirect; the context holds it as `redsys_response`, verified, or `None` when it is missing or does not verify. A template with the same name in the project replaces the app's.
+`django_redsys:ok` and `django_redsys:ko` render `django_redsys/ok.html` and `django_redsys/ko.html` through `ResultView`, with the verified result as `redsys_response`. RedSys appends the signed result to the redirect only when the option "Enviar Parámetros en las URLs" is on in its portal. Without a result that verifies, or with an outcome that does not match the page (an authorized result on the KO page, or the reverse), the page answers `404`. With the option off, `url_ok` and `url_ko` point to the project's own views. A template with the same name in the project replaces the app's.
 
 ## Templates and Content Security Policy
 

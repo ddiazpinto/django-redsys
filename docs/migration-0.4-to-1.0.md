@@ -23,7 +23,7 @@ An override with an old name or block is not an error: Django renders the app's 
 | Block `headers` in `redirect.html` | Block `head` |
 | Block `form` in `redirect.html` | Removed; the form is in block `content` |
 | Context `Ds_SignatureVersion`, `Ds_MerchantParameters`, `Ds_Signature` | `fields`, a dict of the three; `endpoint` as before |
-| No context on the result pages | `redsys_response`, the verified result or `None` |
+| No context on the result pages | `redsys_response`, the verified result |
 
 ## Settings
 
@@ -52,7 +52,7 @@ The client options move into one dict, `REDSYS_CLIENT`; per-operation values mov
 | `get_order_object()` | Removed; `get_redsys_fields()` loads what it needs |
 | `get_redirection_template_name()` | `redirect_template_name` |
 | `response_view` | `NotificationView` |
-| `accepted_view`, `rejected_view` | `ResultView`, with the verified result as `redsys_response` |
+| `accepted_view`, `rejected_view` | `ResultView`, with the verified result as `redsys_response`; `404` without one, so the RedSys portal option "Enviar Parámetros en las URLs" must be on |
 | `forms.GatewayForm` | Removed; python-redsys verifies the fields |
 
 ## URLs

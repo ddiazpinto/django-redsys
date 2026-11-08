@@ -12,7 +12,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 - `django_redsys.client.get_client()`, which builds a client from `REDSYS_CLIENT`, the direct-connection clients included.
 - `RedsysPaymentView`, `RedsysPaymentFormView` and `RedsysPaymentMixin`: `get_redsys_fields()` returns the operation fields and `transaction_type` selects any redirect operation (authorization, preauthorization, authentication, refund without original). `RedsysPaymentView` answers GET and POST.
 - A `REDSYS_CLIENT` the client rejects raises `ImproperlyConfigured`; a notification that fails parsing or verification, whatever the exception, answers `400`.
-- `ResultView` for the OK and KO pages, with the verified result as `redsys_response`.
+- `ResultView` for the OK and KO pages, with the verified result as `redsys_response`; it answers `404` without a verified result or when the outcome does not match the page.
+- `get_redsys_client()` on every view, to pay or verify with another account than `REDSYS_CLIENT`; a payment view whose `get_redsys_fields()` returns `None` answers `404`.
+- `REDSYS_NOTIFICATION_IPS`: an optional list of addresses and networks allowed to post notifications; others get `403` before their payload is parsed.
+- System checks: `django_redsys.E001` and `E002` for invalid settings, `W001` on `check --deploy` for a non-production environment with `DEBUG` off.
 - The payment page is sent with `Cache-Control: no-store`, has a `<noscript>` submit button, and carries the CSP nonce of Django's CSP middleware.
 - Tests, `pyproject.toml` packaging and a `uv.lock`; the source distribution carries the tests and `docs/`.
 - CI on GitHub Actions: lint, tests on Python 3.10 to 3.15 and on every supported Django series, the lowest declared dependencies; Dependabot for uv and the actions. A release workflow publishes a `vX.Y.Z` tag to PyPI through trusted publishing.
