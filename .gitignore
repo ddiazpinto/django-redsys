@@ -87,3 +87,8 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# uv and tools
+.venv/
+.ruff_cache/
+.pytest_cache/

@@ -1,0 +1,4 @@
+graft docs
+graft tests
+include CHANGELOG.md CONTRIBUTORS.md ROADMAP.md
+global-exclude *.py[cod] __pycache__
