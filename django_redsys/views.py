@@ -1,6 +1,9 @@
+from contextlib import nullcontext
 from ipaddress import ip_address
 
+from django.apps import apps
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.db import router, transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -9,6 +12,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView, TemplateView, View
 from redsys import transactions
+from redsys.clients import MERCHANT_PARAMETERS
 
 from .client import get_client
 from .conf import notification_networks
@@ -17,8 +21,11 @@ from .signals import (
     notification_denied,
     notification_invalid,
     notification_received,
+    notification_repeated,
     request_created,
 )
+
+NOTIFICATIONS_APP = 'django_redsys.notifications'
 
 
 class RedsysClientMixin:
@@ -101,10 +108,38 @@ class NotificationView(RedsysClientMixin, View):
         except Exception as error:
             notification_invalid.send(sender=type(self), request=request, error=error)
             raise SuspiciousOperation('RedSys notification failed verification.') from error
-        notification_received.send(sender=type(self), request=request, response=response)
-        outcome = notification_authorized if response.is_authorized() else notification_denied
-        outcome.send(sender=type(self), request=request, response=response)
+        # Recording and receivers commit together: a receiver that fails leaves the notification unrecorded.
+        with self.processing():
+            if not self.register_notification(response, client):
+                notification_repeated.send(sender=type(self), request=request, response=response)
+                return HttpResponse()
+            notification_received.send(sender=type(self), request=request, response=response)
+            outcome = notification_authorized if response.is_authorized() else notification_denied
+            outcome.send(sender=type(self), request=request, response=response)
         return HttpResponse()
+
+    def recording(self):
+        return apps.is_installed(NOTIFICATIONS_APP)
+
+    def processing(self):
+        if not self.recording():
+            return nullcontext()
+        from .notifications.models import Notification
+
+        return transaction.atomic(using=router.db_for_write(Notification))
+
+    def register_notification(self, response, client):
+        """Whether the notification is new: always without ``django_redsys.notifications``, else per its record."""
+        if not self.recording():
+            return True
+        from .notifications.models import Notification
+
+        return Notification.objects.register(
+            self.request.POST.get(MERCHANT_PARAMETERS, ''),
+            response,
+            environment=client.environment,
+            remote_addr=self.request.META.get('REMOTE_ADDR'),
+        )
 
 
 class ResultView(RedsysClientMixin, TemplateView):
