@@ -8,7 +8,7 @@ import pytest
 from redsys import transactions
 from redsys.clients import RedirectClient
 
-from redsys_gateway import signals
+from django_redsys import signals
 
 from .conftest import decoded, signed
 

@@ -22,16 +22,16 @@ class RedsysPaymentMixin:
     """Signs a redirect-connection operation and renders the form that posts it to RedSys."""
 
     transaction_type = transactions.AUTHORIZATION
-    redirect_template_name = 'redsys_gateway/redirect.html'
+    redirect_template_name = 'django_redsys/redirect.html'
 
     def get_redsys_fields(self):
         raise NotImplementedError('get_redsys_fields() must return the operation fields, order and amount included.')
 
     def get_redsys_request(self):
         fields = {
-            'merchant_url': self.request.build_absolute_uri(reverse('redsys_gateway:notification')),
-            'url_ok': self.request.build_absolute_uri(reverse('redsys_gateway:ok')),
-            'url_ko': self.request.build_absolute_uri(reverse('redsys_gateway:ko')),
+            'merchant_url': self.request.build_absolute_uri(reverse('django_redsys:notification')),
+            'url_ok': self.request.build_absolute_uri(reverse('django_redsys:ok')),
+            'url_ko': self.request.build_absolute_uri(reverse('django_redsys:ko')),
             **self.get_redsys_fields(),
         }
         redsys_request = get_client().request(self.transaction_type, **fields)

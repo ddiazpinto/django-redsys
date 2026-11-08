@@ -5,7 +5,7 @@ from django.core.exceptions import ImproperlyConfigured
 from redsys import environments
 from redsys.clients import DirectClient, RedirectClient
 
-from redsys_gateway.client import get_client
+from django_redsys.client import get_client
 
 
 def test_builds_a_redirect_client_from_the_setting():
