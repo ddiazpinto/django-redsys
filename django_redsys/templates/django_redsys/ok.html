@@ -9,7 +9,7 @@
 <body>
     {% block content %}
     <h1>{% translate "Payment completed" %}</h1>
-    {% if redsys_response.order %}<p>{% blocktranslate with order=redsys_response.order %}Order {{ order }}.{% endblocktranslate %}</p>{% endif %}
+    <p>{% blocktranslate with order=redsys_response.order %}Order {{ order }}.{% endblocktranslate %}</p>
     {% endblock %}
 </body>
 </html>

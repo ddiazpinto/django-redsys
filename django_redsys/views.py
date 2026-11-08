@@ -1,5 +1,7 @@
-from django.core.exceptions import SuspiciousOperation
-from django.http import HttpResponse
+from ipaddress import ip_address
+
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.http import Http404, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils.cache import add_never_cache_headers
@@ -9,6 +11,7 @@ from django.views.generic import FormView, TemplateView, View
 from redsys import transactions
 
 from .client import get_client
+from .conf import notification_networks
 from .signals import (
     notification_authorized,
     notification_denied,
@@ -18,23 +21,32 @@ from .signals import (
 )
 
 
-class RedsysPaymentMixin:
+class RedsysClientMixin:
+    def get_redsys_client(self):
+        """The python-redsys client of this view; ``get_client()`` unless a subclass picks another account."""
+        return get_client()
+
+
+class RedsysPaymentMixin(RedsysClientMixin):
     """Signs a redirect-connection operation and renders the form that posts it to RedSys."""
 
     transaction_type = transactions.AUTHORIZATION
     redirect_template_name = 'django_redsys/redirect.html'
 
     def get_redsys_fields(self):
-        raise NotImplementedError('get_redsys_fields() must return the operation fields, order and amount included.')
+        raise NotImplementedError('get_redsys_fields() must return the operation fields, or None for no order.')
 
     def get_redsys_request(self):
+        operation_fields = self.get_redsys_fields()
+        if not operation_fields:
+            raise Http404('No order to pay.')
         fields = {
             'merchant_url': self.request.build_absolute_uri(reverse('django_redsys:notification')),
             'url_ok': self.request.build_absolute_uri(reverse('django_redsys:ok')),
             'url_ko': self.request.build_absolute_uri(reverse('django_redsys:ko')),
-            **self.get_redsys_fields(),
+            **operation_fields,
         }
-        redsys_request = get_client().request(self.transaction_type, **fields)
+        redsys_request = self.get_redsys_client().request(self.transaction_type, **fields)
         request_created.send(sender=type(self), request=self.request, redsys_request=redsys_request, fields=fields)
         return redsys_request
 
@@ -62,13 +74,27 @@ class RedsysPaymentFormView(RedsysPaymentMixin, FormView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class NotificationView(View):
+class NotificationView(RedsysClientMixin, View):
     """Receives the server-to-server notification RedSys posts to ``merchant_url``."""
 
     http_method_names = ['post']
 
+    def is_allowed_sender(self):
+        networks = notification_networks()
+        if networks is None:
+            return True
+        try:
+            address = ip_address(self.request.META.get('REMOTE_ADDR', ''))
+        except ValueError:
+            return False
+        return any(address in network for network in networks)
+
     def post(self, request, *args, **kwargs):
-        client = get_client()
+        if not self.is_allowed_sender():
+            error = PermissionDenied('RedSys notification from an address outside REDSYS_NOTIFICATION_IPS.')
+            notification_invalid.send(sender=type(self), request=request, error=error)
+            raise error
+        client = self.get_redsys_client()
         try:
             response = client.parse_response(request.POST.dict())
         # The payload is untrusted input: any failure to parse or verify it makes the notification invalid.
@@ -81,20 +107,28 @@ class NotificationView(View):
         return HttpResponse()
 
 
-class ResultView(TemplateView):
-    """The ``url_ok`` / ``url_ko`` page; ``redsys_response`` is the verified result RedSys appends, or ``None``."""
+class ResultView(RedsysClientMixin, TemplateView):
+    """The ``url_ok`` / ``url_ko`` page: 404 unless RedSys appended a verified result with the expected outcome."""
+
+    authorized = True
 
     def get_redsys_response(self):
         payload = self.request.GET.dict()
         if not payload:
             return None
-        client = get_client()
+        client = self.get_redsys_client()
         try:
             return client.parse_response(payload)
         except Exception:
             return None
 
+    def get(self, request, *args, **kwargs):
+        self.redsys_response = self.get_redsys_response()
+        if self.redsys_response is None or self.redsys_response.is_authorized() != self.authorized:
+            raise Http404('No RedSys result to show.')
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['redsys_response'] = self.get_redsys_response()
+        context['redsys_response'] = self.redsys_response
         return context

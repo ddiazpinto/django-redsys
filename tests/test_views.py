@@ -5,6 +5,7 @@ from re import findall, search
 
 import django
 import pytest
+from django.core.exceptions import PermissionDenied
 from redsys import transactions
 from redsys.clients import RedirectClient
 
@@ -72,6 +73,15 @@ def test_view_without_fields_raises():
 
     with pytest.raises(NotImplementedError):
         Client(raise_request_exception=True).get('/missing/')
+
+
+def test_payment_view_without_an_order_is_404(client, received):
+    assert client.get('/no-order/').status_code == 404
+    assert received == []
+
+
+def test_a_view_can_pick_another_client(client):
+    assert decoded(_form(client.get('/other-terminal/1234abcd/'))[1])['Ds_Merchant_Terminal'] == 2
 
 
 def test_invalid_fields_raise_before_signing(client, received, settings):
@@ -167,6 +177,27 @@ def test_notification_signed_with_another_key_is_rejected(client, received, noti
     assert client.post('/redsys/notification/', fields).status_code == 400
 
 
+@pytest.mark.parametrize('remote_addr', ['192.0.2.10', '198.51.100.77', '2001:db8::5'])
+def test_notification_from_an_allowed_sender(client, settings, received, notification, remote_addr):
+    settings.REDSYS_NOTIFICATION_IPS = ['192.0.2.10', '198.51.100.0/24', '2001:db8::/32']
+    response = client.post('/redsys/notification/', signed(notification), REMOTE_ADDR=remote_addr)
+    assert response.status_code == 200
+    assert received[0][0] is signals.notification_received
+
+
+@pytest.mark.parametrize('remote_addr', ['192.0.2.11', '203.0.113.1', '', 'not an address'])
+def test_notification_from_another_sender_is_refused_before_parsing(
+    client, settings, received, notification, remote_addr, monkeypatch
+):
+    settings.REDSYS_NOTIFICATION_IPS = ['192.0.2.10', '198.51.100.0/24']
+    monkeypatch.setattr(RedirectClient, 'parse_response', lambda *args: pytest.fail('parsed'))
+    response = client.post('/redsys/notification/', signed(notification), REMOTE_ADDR=remote_addr)
+    assert response.status_code == 403
+    [(signal, kwargs)] = received
+    assert signal is signals.notification_invalid
+    assert isinstance(kwargs['error'], PermissionDenied)
+
+
 def test_notification_needs_no_csrf_token_and_only_takes_post(notification):
     from django.test import Client
 
@@ -176,25 +207,31 @@ def test_notification_needs_no_csrf_token_and_only_takes_post(notification):
 
 
 # == OK and KO pages ==
-@pytest.mark.parametrize('page', ['ok', 'ko'])
-def test_result_page_shows_the_verified_response(client, notification, page):
+@pytest.mark.parametrize(('page', 'code'), [('ok', '0000'), ('ko', '0190')])
+def test_result_page_shows_the_verified_response(client, notification, page, code):
+    notification['Ds_Response'] = code
     response = client.get(f'/redsys/{page}/', signed(notification))
     assert response.status_code == 200
     assert response.context['redsys_response'].order == '1234abcd'
     assert 'Order 1234abcd.' in response.content.decode()
 
 
+@pytest.mark.parametrize(('page', 'code'), [('ok', '0190'), ('ko', '0000')])
+def test_result_page_with_the_other_outcome_is_404(client, notification, page, code):
+    notification['Ds_Response'] = code
+    assert client.get(f'/redsys/{page}/', signed(notification)).status_code == 404
+
+
+@pytest.mark.parametrize('page', ['ok', 'ko'])
 @pytest.mark.parametrize(
     'query',
     [{}, {'Ds_MerchantParameters': 'x', 'Ds_Signature': 'y'}, _hostile('{"Ds_Amount": "1E99999999", "Ds_Order": "1"}')],
 )
-def test_result_page_without_a_valid_response(client, query):
-    response = client.get('/redsys/ok/', query)
-    assert response.status_code == 200
-    assert response.context['redsys_response'] is None
+def test_result_page_without_a_valid_response_is_404(client, query, page):
+    assert client.get(f'/redsys/{page}/', query).status_code == 404
 
 
-def test_result_page_ignores_a_tampered_response(client, notification):
+def test_result_page_with_a_tampered_response_is_404(client, notification):
     fields = signed(notification)
     fields['Ds_Signature'] = 'x' + fields['Ds_Signature'][1:]
-    assert client.get('/redsys/ko/', fields).context['redsys_response'] is None
+    assert client.get('/redsys/ok/', fields).status_code == 404
