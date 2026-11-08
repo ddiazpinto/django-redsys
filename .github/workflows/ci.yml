@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ">=0.13.4" # eMudhra CA incident fix
+      - name: Lock is in sync with pyproject.toml
+        run: uv lock --check
+      - name: Install (locked)
+        run: uv sync --locked --no-default-groups --group lint
+      - name: Ruff
+        run: uv run --no-sync ruff check django_redsys tests
+      - name: Ruff format
+        run: uv run --no-sync ruff format --check django_redsys tests
+
+  # The lock resolves Django 5.2 LTS below Python 3.12 and the latest Django from 3.12 on.
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ">=0.13.4" # eMudhra CA incident fix
+      - name: Install (locked)
+        run: uv sync --locked --no-default-groups --group test --python ${{ matrix.python-version }}
+      - name: Test
+        run: uv run --no-sync pytest -q --cov=django_redsys
+
+  # The supported Django series the lock does not pick, on the oldest and newest Python each one supports.
+  django:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { django: "5.2", python-version: "3.14" }
+          - { django: "6.0", python-version: "3.12" }
+          - { django: "6.0", python-version: "3.14" }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ">=0.13.4" # eMudhra CA incident fix
+      - name: Install (locked), then the Django series
+        run: |
+          uv sync --locked --no-default-groups --group test --python ${{ matrix.python-version }}
+          uv pip install "Django~=${{ matrix.django }}.0"
+      - name: Test
+        run: uv run --no-sync pytest -q
+
+  # The declared minimums are what users may resolve to; prove them on the oldest and newest Python.
+  lowest-dependencies:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.15"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ">=0.13.4" # eMudhra CA incident fix
+      - name: Test with the lowest declared versions
+        run: >-
+          uv run --isolated --no-project --python ${{ matrix.python-version }}
+          --resolution lowest-direct --with-editable . --with "pytest>=8.4" --with "pytest-django>=4.11"
+          pytest -q
+
+  # The single required check in the branch ruleset, so the matrix can change without editing the ruleset.
+  ci-ok:
+    if: always()
+    needs: [lint, test, django, lowest-dependencies]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All jobs passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          for r in $RESULTS; do [ "$r" = success ] || exit 1; done
