@@ -867,15 +867,15 @@ wheels = [
 
 [[package]]
 name = "python-redsys"
-version = "2.2.0"
+version = "2.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/dc/857376a130e690479c58b0e4826b8e0bec9d6216c10f26be6ba8ee4b421c/python_redsys-2.2.0.tar.gz", hash = "sha256:9a1220a83fd83e747440fe351c913259519d9d113ecfc6748f66fdb16ad9273d", size = 98222, upload-time = "2026-11-07T21:12:06.206Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3e/93/53f8d446cca33cd24b50a257f473a1834dd6860a8c633832b19f867b7e49/python_redsys-2.2.1.tar.gz", hash = "sha256:1c923478340efefa3c67b7f32384e2ef048cabf4aa192aecc4c84b61a5d7dea4", size = 101243, upload-time = "2026-11-14T03:14:44.952Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2e/a9/2a0b92d4a3074399d72bf12eeb39416ac4f0bf8d42bd27f4c5a909505319/python_redsys-2.2.0-py3-none-any.whl", hash = "sha256:b39647f1d52be041b298988fa859feebc21add2e1524702faad9a74dcde48fbb", size = 82793, upload-time = "2026-11-07T21:12:04.921Z" },
+    { url = "https://files.pythonhosted.org/packages/79/ad/57b70e2a03ebe0b3a95bbac1cf7d69745afed28562ad7e2f865244609a1c/python_redsys-2.2.1-py3-none-any.whl", hash = "sha256:ed9ed516240c86e752e911d94601bf2080f78d2b0fbb5177ff28227dc3f24658", size = 84127, upload-time = "2026-11-14T03:14:43.674Z" },
 ]
 
 [[package]]
